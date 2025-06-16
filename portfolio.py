@@ -40,7 +40,7 @@ def convert_volume(val):
 
     
 def feature_engineering(df):
-    df['Target'] = (df['Price'].shift(-1) > df['Price']).astype(int)
+    df['Target'] = (df['Price'].shift(-15) > df['Price']).astype(int)
     df['Daily_Range'] = df['High'] - df['Low']
     df['Volatility'] = (df['High'] - df['Low']) / df['Open']
     df['MA_25'] = df['Price'].rolling(window=25).mean()
@@ -76,10 +76,20 @@ def datasplit(df):
     features = ['Open', 'High', 'Low', 'Daily_Range', 'Volatility', 'MA_25', 'MA_75', 'MA_Ratio','Price_Lag1', 'Price_Lag2', 'Change_Lag1', 'Change_Lag2']
     X = df[features]
     y = df['Target']
+    ''''
     train_size = int(len(df) * 0.8)
     X_train, X_test = X[:train_size], X[train_size:]
     y_train, y_test = y[:train_size], y[train_size:]
+    '''
+    
+    from sklearn.model_selection import TimeSeriesSplit
+
+    tscv = TimeSeriesSplit(n_splits=5)
+    for train_idx, test_idx in tscv.split(X):
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
     return X_train, X_test, y_train, y_test
+
 def plot_correlation_matrix(df):
     feature = ['Open', 'High', 'Low', 'Daily_Range', 'Volatility', 'MA_25', 'MA_75', 'MA_Ratio','Target']
     plt.figure(figsize=(12, 8))
@@ -104,6 +114,25 @@ def evaluate_model(model, X_test, y_test):
     print("Classification Report:")
     print(classification_report(y_test, y_pred))
     print("Accuracy:", accuracy_score(y_test, y_pred))
+    
+def plot_predictions(y_test, y_pred, df):
+    # Create a DataFrame to align index and plot
+    results = pd.DataFrame({
+        'Actual': y_test.values,
+        'Predicted': y_pred
+    }, index=y_test.index)
+
+    plt.figure(figsize=(14, 6))
+    plt.plot(results.index, results['Actual'], label='Actual', alpha=0.7, color='blue')
+    plt.plot(results.index, results['Predicted'], label='Predicted', alpha=0.7, color='red')
+    plt.title('Actual vs Predicted Target Values')
+    plt.xlabel('Date')
+    plt.ylabel('Target')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("actual_vs_predicted.png")
+
 
 def main():
     df = pd.read_csv('SGD_INR Historical Data.csv')
@@ -114,8 +143,16 @@ def main():
     model = train_model(X_train, y_train)
     evaluate_model(model, X_test, y_test)
     
+    y_pred = model.predict(X_test)
+    plot_predictions(y_test, y_pred, df)
+    from sklearn.feature_selection import mutual_info_classif
+    mi = mutual_info_classif(X_train, y_train)
+    print(pd.Series(mi, index=X_train.columns).sort_values(ascending=False))
+    
 if __name__ == "__main__":
     main()
     print("Model training and evaluation completed.")
     print("Plots saved as 'sgd_inr_prediction.png' and 'correlation_matrix.png'.")
+    
+
     
