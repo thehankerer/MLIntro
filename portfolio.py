@@ -46,13 +46,19 @@ def feature_engineering(df):
     df['MA_25'] = df['Price'].rolling(window=25).mean()
     df['MA_75'] = df['Price'].rolling(window=75).mean()
     df['MA_Ratio'] = df['MA_25'] / df['MA_75']
+    df['Change'] = df['Price'].pct_change()
+    df['Price_Lag1'] = df['Price'].shift(1)
+    df['Price_Lag2'] = df['Price'].shift(2)
+    df['Change_Lag1'] = df['Change'].shift(1)
+    df['Change_Lag2'] = df['Change'].shift(2)
+
     df.dropna(inplace=True)
     return df
 describe_data(df)
-df = preprocess_data(df)
-print(df.head())
-df = feature_engineering(df)
-print(df.head())
+#df = preprocess_data(df)
+#print(df.head())
+#df = feature_engineering(df)
+#print(df.head())
 
 def plot_data(df):
     plt.figure(figsize=(14, 7))
@@ -67,7 +73,7 @@ def plot_data(df):
     plt.savefig("sgd_inr_prediction.png")
     
 def datasplit(df):
-    features = ['Open', 'High', 'Low', 'Change', 'Daily_Range', 'Volatility', 'MA_3', 'MA_7', 'MA_Ratio']
+    features = ['Open', 'High', 'Low', 'Daily_Range', 'Volatility', 'MA_25', 'MA_75', 'MA_Ratio','Price_Lag1', 'Price_Lag2', 'Change_Lag1', 'Change_Lag2']
     X = df[features]
     y = df['Target']
     train_size = int(len(df) * 0.8)
@@ -84,5 +90,32 @@ def plot_correlation_matrix(df):
     plt.savefig("correlation_matrix.png")
     
     
-plot_correlation_matrix(df)
+#plot_correlation_matrix(df)
 
+def train_model(X_train, y_train):
+    from sklearn.ensemble import RandomForestClassifier
+    model = RandomForestClassifier(n_estimators=100, random_state=42,class_weight='balanced')
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_model(model, X_test, y_test):
+    from sklearn.metrics import classification_report, accuracy_score
+    y_pred = model.predict(X_test)
+    print("Classification Report:")
+    print(classification_report(y_test, y_pred))
+    print("Accuracy:", accuracy_score(y_test, y_pred))
+
+def main():
+    df = pd.read_csv('SGD_INR Historical Data.csv')
+    df = preprocess_data(df)
+    df = feature_engineering(df)
+    plot_data(df)
+    X_train, X_test, y_train, y_test = datasplit(df)
+    model = train_model(X_train, y_train)
+    evaluate_model(model, X_test, y_test)
+    
+if __name__ == "__main__":
+    main()
+    print("Model training and evaluation completed.")
+    print("Plots saved as 'sgd_inr_prediction.png' and 'correlation_matrix.png'.")
+    
