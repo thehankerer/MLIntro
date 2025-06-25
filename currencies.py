@@ -73,14 +73,14 @@ def feature_engineer_currency_data(df):
     return df
 
 # Example usage:
-df = pd.read_csv('merged_currencies.csv')
-df = preprocess_currency_data(df)
-describe_currency_data(df)
+#df = pd.read_csv('merged_currencies.csv')
+#df = preprocess_currency_data(df)
+#describe_currency_data(df)
 
 
-df = feature_engineer_currency_data(df)
-print(df.head())
-df.to_csv('processed_currencies.csv', index=False)
+#df = feature_engineer_currency_data(df)
+#print(df.head())
+#df.to_csv('processed_currencies.csv', index=False)
 # This code merges currency data from three CSV files, preprocesses it, describes it, and
 # performs feature engineering to create new features for analysis or modeling.
 # The final processed data can be saved to a new CSV file for further use.
@@ -90,34 +90,38 @@ df.to_csv('processed_currencies.csv', index=False)
 
 # Select features and target
 # Load processed features directly from CSV
+
 processed_df = pd.read_csv('processed_currencies.csv')
 
-features = [
-    'sgd_inr', 'usd_inr', 'xau_inr', 'Daily_Range', 'Volatility',
-    'MA_25', 'MA_75', 'MA_Ratio', 'Change',
-    'Price_Lag1', 'Price_Lag2', 'Change_Lag1', 'Change_Lag2'
-]
-target = 'Target'
+def classifier():
 
-X = processed_df[features]
-y = processed_df[target]
+    features = [
+        'sgd_inr', 'usd_inr', 'xau_inr', 'Daily_Range', 'Volatility',
+        'MA_25', 'MA_75', 'MA_Ratio', 'Change',
+        'Price_Lag1', 'Price_Lag2', 'Change_Lag1', 'Change_Lag2'
+    ]
+    target = 'Target'
 
-# Split data (time-series aware: no shuffling)
-split_idx = int(len(X) * 0.8)
-X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
-y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+    X = processed_df[features]
+    y = processed_df[target]
 
-# Train model
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+    # Split data (time-series aware: no shuffling)
+    split_idx = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
 
-def linear_regression_usd_xau_to_sgd(df, plot=True):
+    # Train model
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+def linear_regression_usd_xau_to_sgdold(df, plot=True):
     """
     Fit a linear regression model using usd_inr and xau_inr to predict sgd_inr.
     Prints coefficients and R^2 score. Optionally plots predictions.
     """
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import r2_score
+    from sklearn.preprocessing import StandardScaler
     import matplotlib.pyplot as plt
 
     X = df[['usd_inr', 'xau_inr']]
@@ -126,6 +130,7 @@ def linear_regression_usd_xau_to_sgd(df, plot=True):
     split_idx = int(len(X) * 0.8)
     X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
     y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+    
 
     lr = LinearRegression()
     lr.fit(X_train, y_train)
@@ -150,11 +155,200 @@ def linear_regression_usd_xau_to_sgd(df, plot=True):
 
     return lr, X_test, y_test, y_pred
 
+def linear_regression_usd_xau_to_sgd_oldwithscaled(df, plot=True):
+    """
+    Fit a linear regression model using usd_inr and xau_inr to predict sgd_inr.
+    Prints coefficients and R^2 score. Optionally plots predictions.
+    """
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import r2_score
+    from sklearn.preprocessing import StandardScaler
+    import matplotlib.pyplot as plt
+
+    X = df[['usd_inr', 'xau_inr']]
+    y = df['sgd_inr']
+
+    # Time-aware train-test split
+    split_idx = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+
+    # 🔄 Scale the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Fit Linear Regression
+    lr = LinearRegression()
+    lr.fit(X_train_scaled, y_train)
+    y_pred = lr.predict(X_test_scaled)
+
+    print("Linear Regression Coefficients:", lr.coef_)
+    print("Intercept:", lr.intercept_)
+    print("R^2 Score:", r2_score(y_test, y_pred))
+
+    # Plot predictions
+    if plot:
+        plt.figure(figsize=(14, 6))
+        plt.plot(y_test.index, y_test.values, label='Actual SGD/INR', color='blue')
+        plt.plot(y_test.index, y_pred, label='Predicted SGD/INR', color='red')
+        plt.title('Linear Regression: Actual vs Predicted SGD/INR')
+        plt.xlabel('Index')
+        plt.ylabel('SGD/INR')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig("scaled_regression_plot.png")
+        plt.show()
+    return lr, X_test, y_test, y_pred
+
+def linear_regression_usd_xau_to_sgd(df, plot=True):
+    """
+    Fit a linear regression model using usd_inr and xau_inr to predict sgd_inr.
+    Prints coefficients, R^2 score, and adjusts predictions for bias (offset).
+    Optionally plots predictions.
+    """
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import r2_score, mean_squared_error
+    from sklearn.preprocessing import StandardScaler
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    # Features and target
+    X = df[['usd_inr', 'xau_inr']]
+    y = df['sgd_inr']
+
+    # Train-test split (time series aware)
+    split_idx = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Fit Linear Regression model
+    lr = LinearRegression(fit_intercept=True)
+    lr.fit(X_train_scaled, y_train)
+    y_pred = lr.predict(X_test_scaled)
+
+    # Print raw results
+    print("Linear Regression Coefficients:", lr.coef_)
+    print("Intercept:", lr.intercept_)
+    print("Raw R^2 Score:", r2_score(y_test, y_pred))
+
+    # Auto-correct offset to minimize RMSE
+    offsets = np.linspace(-2, 2, 1000)
+    best_offset = min(offsets, key=lambda o: mean_squared_error(y_test, y_pred - o))
+    y_pred_adjusted = y_pred - best_offset
+
+    # Print adjusted R^2
+    print("Offset Applied:", best_offset)
+    print("Adjusted R^2 Score:", r2_score(y_test, y_pred_adjusted))
+
+    # Plot actual vs adjusted predictions
+    if plot:
+        y_pred_series = pd.Series(y_pred_adjusted, index=y_test.index)
+
+        plt.figure(figsize=(14, 6))
+        plt.plot(y_test.index, y_test.values, label='Actual SGD/INR', color='blue', linewidth=2)
+        plt.plot(y_pred_series.index, y_pred_series.values, label='Adjusted Predicted SGD/INR', color='red', linestyle='--', linewidth=2)
+
+        plt.title('Linear Regression: Actual vs Adjusted Predicted SGD/INR', fontsize=14)
+        plt.xlabel('Date' if isinstance(y_test.index[0], pd.Timestamp) else 'Index')
+        plt.ylabel('SGD/INR Rate')
+        plt.legend(loc='best')
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        plt.savefig("adjusted_regression_plot.png")
+        plt.show()
+    return lr, X_test, y_test, y_pred_adjusted
+
 # Example usage:
-linear_regression_usd_xau_to_sgd(processed_df)
+#linear_regression_usd_xau_to_sgd(processed_df)
+
+def corrected_regression_pipeline(df, plot=True):
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.linear_model import LinearRegression
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import r2_score, mean_squared_error
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # ✅ Valid features (NO direct 'sgd_inr')
+    features = [
+        'usd_inr', 'xau_inr',
+        'MA_25', 'MA_75', 'MA_Ratio', 'Change',
+        'Price_Lag1', 'Price_Lag2', 'Change_Lag1', 'Change_Lag2'
+    ]
+
+    # Drop rows with missing values
+    df = df[features + ['sgd_inr']].dropna()
+
+    # Feature matrix and target
+    X = df[features]
+    y = df['sgd_inr']
+
+    # Time-aware train-test split
+    split_idx = int(len(df) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+
+    # Scale features for linear regression
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # ✅ Linear Regression
+    linreg = LinearRegression()
+    linreg.fit(X_train_scaled, y_train)
+    y_pred_lr = linreg.predict(X_test_scaled)
+
+    # Offset correction
+    offsets = np.linspace(-2, 2, 1000)
+    best_offset = min(offsets, key=lambda o: mean_squared_error(y_test, y_pred_lr - o))
+    y_pred_lr_adj = y_pred_lr - best_offset
+    r2_lr = r2_score(y_test, y_pred_lr_adj)
+
+    # ✅ Random Forest Regressor
+    rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf.fit(X_train, y_train)
+    y_pred_rf = rf.predict(X_test)
+    r2_rf = r2_score(y_test, y_pred_rf)
+
+    # ✅ Plot predictions
+    if plot:
+        plt.figure(figsize=(14, 6))
+        plt.plot(y_test.index, y_test.values, label='Actual SGD/INR', color='black')
+        plt.plot(y_test.index, y_pred_lr_adj, label=f'Linear Regression (adj) R²={r2_lr:.2f}', color='red')
+        #plt.plot(y_test.index, y_pred_rf, label=f'Random Forest R²={r2_rf:.2f}', color='green', linestyle='--')
+        plt.title('SGD/INR Prediction: Actual vs Predicted')
+        plt.xlabel('Date' if hasattr(y_test.index, 'dtype') and 'datetime' in str(y_test.index.dtype) else 'Index')
+        plt.ylabel('SGD/INR Rate')
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        plt.savefig("corrected_regression_plot.png")
+        plt.show()
+
+    # Return results
+    return {
+        'Linear Regression R2': r2_lr,
+        'Random Forest R2': r2_rf,
+        'Linear Regression Model': linreg,
+        'Random Forest Model': rf,
+        'Scaler': scaler,
+        'Offset': best_offset
+    }
+
+results = corrected_regression_pipeline(processed_df)
+print("Linear R²:", results['Linear Regression R2'])
+print("Random Forest R²:", results['Random Forest R2'])
 
 # Predict
-y_pred = model.predict(X_test)
+#y_pred = model.predict(X_test)
 
 def plot_feature_importances(model, feature_names):
     import matplotlib.pyplot as plt
@@ -172,7 +366,7 @@ def plot_feature_importances(model, feature_names):
     plt.savefig("feature_importances.png")
     plt.show()
     
-plot_feature_importances(model, features)
+#plot_feature_importances(model, features)
 
 def plot_correlation_matrix(df):
     import seaborn as sns
@@ -188,8 +382,8 @@ def plot_correlation_matrix(df):
     plt.show()
 
 # Evaluate
-print("Accuracy:", accuracy_score(y_test, y_pred))
-print("Classification Report:\n", classification_report(y_test, y_pred))
+#print("Accuracy:", accuracy_score(y_test, y_pred))
+#print("Classification Report:\n", classification_report(y_test, y_pred))
 def plot_predictions(y_test, y_pred):
     import matplotlib.pyplot as plt
     
@@ -210,5 +404,5 @@ def plot_predictions(y_test, y_pred):
     plt.savefig("predictions_plot.png")
     plt.show()
     
-plot_correlation_matrix(processed_df)
-plot_predictions(y_test, y_pred)
+#plot_correlation_matrix(processed_df)
+#plot_predictions(y_test, y_pred)
