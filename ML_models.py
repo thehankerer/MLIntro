@@ -13,7 +13,7 @@ def feature_engineering(df):
     Adds lagged features and movement classification.
     """
     df = df.copy()
-    # Movement should be 1 when current price is greater than prior day's price
+    # Movement should be 1 when next day's price is higher than current day's price
     df['sgd_movement'] = (df['Price_Lag1'] > df['sgd_inr']).astype(int)
     
     #lead features for sgd_inr
@@ -22,10 +22,10 @@ def feature_engineering(df):
     df.dropna(inplace=True)
     return df
 
-def linear_regression_usd_xau_to_sgdold(df, plot=True):
+def linear_regression_usd_xau_to_sgd(df, plot=True):
     """
     Fit a linear regression model using usd_inr and xau_inr to predict sgd_inr.
-    Prints coefficients and R^2 score. Optionally plots predictions.
+    Prints coefficients and R^2 score. 
     """
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import r2_score
@@ -48,7 +48,7 @@ def linear_regression_usd_xau_to_sgdold(df, plot=True):
     print("Intercept:", lr.intercept_)
     print("R^2 Score:", r2_score(y_test, y_pred))
     print("Accuracy Score:", lr.score(X_test, y_test))
-'''
+
     if plot:
         plt.figure(figsize=(14, 6))
         plt.plot(y_test.index, y_test.values, label='Actual SGD/INR', color='blue')
@@ -59,12 +59,12 @@ def linear_regression_usd_xau_to_sgdold(df, plot=True):
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig("linear_regression_sgd_inr_corrected.png")
+        #plt.savefig("linear_regression_sgd_inr_corrected.png")
         plt.show()
-'''
-    #return lr, X_test, y_test, y_pred
 
-linear_regression_usd_xau_to_sgdold(processed_df)
+    return lr, X_test, y_test, y_pred
+
+
 
 def logistic_regression_usd_xau_to_sgd(df):
     """
@@ -139,10 +139,12 @@ def plot_predictions(y_test, y_pred):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("logistic_regression_sgd_movement.png")
+    #plt.savefig("logistic_regression_sgd_movement.png")
     plt.show()
     
 
 featured_df = feature_engineering(processed_df)    
 log_reg, X_test, y_test, y_pred, y_pred_best = logistic_regression_usd_xau_to_sgd(featured_df)
 plot_predictions(y_test, y_pred_best)
+#plot_predictions(y_test, y_pred) to plot with default 0.5 threshold
+linear_regression_usd_xau_to_sgd(featured_df)
