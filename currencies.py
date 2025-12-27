@@ -125,7 +125,7 @@ def linear_regression_usd_xau_to_sgdold(df, plot=True):
     import matplotlib.pyplot as plt
 
     X = df[['usd_inr', 'xau_inr']]
-    y = df['sgd_inr']
+    y = df['Price_Lag1']  # Predicting next day's sgd_inr
 
     split_idx = int(len(X) * 0.8)
     X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
@@ -150,10 +150,12 @@ def linear_regression_usd_xau_to_sgdold(df, plot=True):
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig("linear_regression_sgd_inr.png")
+        plt.savefig("linear_regression_sgd_inr_corrected.png")
         plt.show()
 
     return lr, X_test, y_test, y_pred
+
+linear_regression_usd_xau_to_sgdold(processed_df)
 
 def linear_regression_usd_xau_to_sgd_oldwithscaled(df, plot=True):
     """
@@ -343,9 +345,9 @@ def corrected_regression_pipeline(df, plot=True):
         'Offset': best_offset
     }
 
-results = corrected_regression_pipeline(processed_df)
-print("Linear R²:", results['Linear Regression R2'])
-print("Random Forest R²:", results['Random Forest R2'])
+#results = corrected_regression_pipeline(processed_df)
+#print("Linear R²:", results['Linear Regression R2'])
+#print("Random Forest R²:", results['Random Forest R2'])
 
 # Predict
 #y_pred = model.predict(X_test)
