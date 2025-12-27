@@ -139,7 +139,8 @@ def linear_regression_usd_xau_to_sgdold(df, plot=True):
     print("Linear Regression Coefficients:", lr.coef_)
     print("Intercept:", lr.intercept_)
     print("R^2 Score:", r2_score(y_test, y_pred))
-
+    print("Accuracy Score:", lr.score(X_test, y_test))
+'''
     if plot:
         plt.figure(figsize=(14, 6))
         plt.plot(y_test.index, y_test.values, label='Actual SGD/INR', color='blue')
@@ -152,8 +153,8 @@ def linear_regression_usd_xau_to_sgdold(df, plot=True):
         plt.tight_layout()
         plt.savefig("linear_regression_sgd_inr_corrected.png")
         plt.show()
-
-    return lr, X_test, y_test, y_pred
+'''
+    #return lr, X_test, y_test, y_pred
 
 linear_regression_usd_xau_to_sgdold(processed_df)
 
