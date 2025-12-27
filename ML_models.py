@@ -33,7 +33,7 @@ def linear_regression_usd_xau_to_sgd(df, plot=True):
     import matplotlib.pyplot as plt
 
     X = df[['usd_inr', 'xau_inr']]
-    y = df['Price_Lag1']  # Predicting next day's sgd_inr
+    y = df['Price_Lead1']  # Predicting next day's sgd_inr
 
     split_idx = int(len(X) * 0.8)
     X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
@@ -59,7 +59,7 @@ def linear_regression_usd_xau_to_sgd(df, plot=True):
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        #plt.savefig("linear_regression_sgd_inr_corrected.png")
+        plt.savefig("linear_regression_sgd_inr_corrected.png")
         plt.show()
 
     return lr, X_test, y_test, y_pred

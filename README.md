@@ -1,14 +1,14 @@
 # Predicting INR/SGD Rate
 
 ## Project
-This repository contains code to explore and model the SGD/INR exchange rate using related markets (USD/INR and XAU/INR). It includes feature engineering, quick baselines (logistic / linear regression as well as output plots.
+This repository implements a methodology inspired by E. Sarmas et al., originally applied to USD/EUR exchange rates, and adapts it to the SGD/INR exchange rate. It includes feature engineering, quick baselines logistic / linear regression as well as output plots.
 
 ## Data
-- Place raw CSVs in `currency_data/` (expected files):
+- Raw CSVs in `currency_data/`:
 	- `SGD_INR Historical Data.csv`
 	- `USD_INR Historical Data.csv`
 	- `XAU_INR Historical Data.csv`
-- `merge_currency_data(...)` and `feature_engineer_currency_data(...)` produce `merged_currencies.csv` and `processed_currencies.csv` used by the models.
+- Utilising the functions in `getStock.py` to get `merged_currencies.csv` and `processed_currencies.csv` used by the models.
 
 ## Requirements
 - Python 3.9+ (virtualenv recommended)
@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 ```bash
 # edit paths in currencies.py if needed, then run
-python3 currencies.py
+python3 ML_models.py
 ```
 
 ## Usage
@@ -39,19 +39,23 @@ python3 ML_models.py
 
 This runs example baselines and saves plots (feature importances, prediction plots) to the repo.
 
-## Notes & best practices
-- Beware of data leakage: do NOT include future values (e.g. `Price_Lead1`) as model inputs — they leak the target and produce unrealistically perfect scores. Labels computed with `shift(-1)` are valid targets but must not be used as features.
-- Use time-aware train/test splits (no shuffling) for time-series data.
-- Add lagged returns, rolling means/std, and interaction terms to improve predictive power.
+## Notes 
+- Used time-aware train/test splits (no shuffling) for time-series data.
 
-## Files of interest
-- `currencies.py` — data merge / preprocessing / feature engineering
-- `ML_models.py` — models, diagnostics, plotting helpers
+
+## Files and Folders of interest
+- `Output_images` — folder contains saved output plots of linear and logistic regression
+- `ML_models.py` — to run models, diagnostics, plotting helpers
 - `processed_currencies.csv` — cleaned features used by the scripts
 
-## Next steps
-- Add cross-validation (time-series split) and hyperparameter tuning
-- Try tree ensembles (RandomForest/XGBoost) and richer feature engineering (technical indicators)
+## Results
+- Logistic regression achieved an accuracy of 57% using Youden’s method for threshold selection.
+- This represents a slight improvement over the 53% average accuracy reported for USD/EUR prediction in the reference publication.
+
+## Citations
+- E. Sarmas et al., "Comparison of Machine Learning Classifiers for Exchange Rate Trend Forecasting," 2022 13th International Conference on Information, Intelligence, Systems & Applications (IISA), Corfu, Greece, 2022, pp. 1-7, doi: 10.1109/IISA56318.2022.9904380.
+
+
 
 
 
