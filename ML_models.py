@@ -28,12 +28,25 @@ def linear_regression_usd_xau_to_sgd(df, plot=True):
     Prints coefficients and R^2 score. 
     """
     from sklearn.linear_model import LinearRegression
-    from sklearn.metrics import r2_score
     from sklearn.preprocessing import StandardScaler
     import matplotlib.pyplot as plt
+    import numpy as np
+    from sklearn.metrics import r2_score, mean_squared_error
 
-    X = df[['usd_inr', 'xau_inr']]
+    # Include autoregressive lag to improve one-step-ahead forecast
+    X = df[['Price_Lag1', 'usd_inr', 'xau_inr']]
     y = df['Price_Lead1']  # Predicting next day's sgd_inr
+    
+    #plot correlation matrix
+    import seaborn as sns
+    import matplotlib.pyplot as plt 
+    corr = df[['Price_Lead1', 'Price_Lag1', 'usd_inr', 'xau_inr']].corr()
+    plt.figure(figsize=(8,6))
+    sns.heatmap(corr, annot=True, cmap='coolwarm')
+    plt.title('Correlation Matrix')
+    plt.savefig("correlation_matrix_linear_regression.png")
+    plt.show()  
+    
 
     split_idx = int(len(X) * 0.8)
     X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
@@ -44,10 +57,17 @@ def linear_regression_usd_xau_to_sgd(df, plot=True):
     lr.fit(X_train, y_train)
     y_pred = lr.predict(X_test)
 
-    print("Linear Regression Coefficients:", lr.coef_)
-    print("Intercept:", lr.intercept_)
-    print("R^2 Score:", r2_score(y_test, y_pred))
-    print("Accuracy Score:", lr.score(X_test, y_test))
+    print("R2:", r2_score(y_test, y_pred))
+    sse = np.sum((y_test - y_pred)**2)
+    sst = np.sum((y_test - np.mean(y_test))**2)
+    print("SSE:", sse, "SST:", sst, "SSE/SST:", sse/sst)
+    print("RMSE:", np.sqrt(mean_squared_error(y_test, y_pred)))
+    print("Baseline RMSE (mean predictor):", np.sqrt(np.mean((y_test - np.mean(y_test))**2)))
+    print("shapes:", np.shape(y_test), np.shape(y_pred))
+    print("y_true range:", np.min(y_test), np.max(y_test))
+    print("y_pred range:", np.min(y_pred), np.max(y_pred))
+    print("residuals mean/std:", np.mean(y_test-y_pred), np.std(y_test-y_pred))
+    
 
     if plot:
         plt.figure(figsize=(14, 6))

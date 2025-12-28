@@ -41,16 +41,18 @@ This runs example baselines and saves plots (feature importances, prediction plo
 
 ## Notes 
 - Used time-aware train/test splits (no shuffling) for time-series data.
+- Adding Price_Lag1(autoregressive feature) to features list along with XAU_INR and USD_INR significantly improved linear regression model score(R^2) from -1.906 to 0.889.
 
 
 ## Files and Folders of interest
-- `Output_images` — folder contains saved output plots of linear and logistic regression
+- `Output_images` — folder contains saved output plots of linear and logistic regression and correlation matrix heatmap.
 - `ML_models.py` — to run models, diagnostics, plotting helpers
 - `processed_currencies.csv` — cleaned features used by the scripts
 
 ## Results
 - Logistic regression achieved an accuracy of 57% using Youden’s method for threshold selection.
-- This represents a slight improvement over the 53% average accuracy reported for USD/EUR prediction in the reference publication.
+- This represents a slight improvement over the 51% average accuracy reported for USD/EUR prediction using logistic regression in the reference publication.
+- The linear regression model achieved an R² of 0.889, however visual inspection of the predictions reveals a lag effect, suggesting that the model fails to capture temporal dependencies. This indicates the need for time-series based models for improved predictive performance.
 
 ## Citations
 - E. Sarmas et al., "Comparison of Machine Learning Classifiers for Exchange Rate Trend Forecasting," 2022 13th International Conference on Information, Intelligence, Systems & Applications (IISA), Corfu, Greece, 2022, pp. 1-7, doi: 10.1109/IISA56318.2022.9904380.
